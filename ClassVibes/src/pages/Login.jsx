@@ -3,7 +3,7 @@ import { supabase } from '../services/supabase';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
-  const [form, setForm] = useState({ userName: '', contraseña: '' });
+  const [form, setForm] = useState({ username: '', contraseña: '' });
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -14,9 +14,9 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const { data, error } = await supabase
-      .from('USUARIO')
+      .from('usuario')
       .select('*')
-      .eq('userName', form.userName)
+      .eq('username', form.username)
       .eq('contraseña', form.contraseña)
       .single();
 
@@ -40,9 +40,9 @@ export default function Login() {
             <label className="form-label fw-bold">Nombre de usuario</label>
             <input
               type="text"
-              name="userName"
+              name="username"
               className="form-control bg-light"
-              value={form.userName}
+              value={form.username}
               onChange={handleChange}
               required
             />
