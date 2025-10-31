@@ -87,11 +87,6 @@ export default function Home() {
           <button className="btn btn-success">Ver reseñas</button>
         </div>
       </div>
-
-      {/* FOOTER */}
-      <div className="text-center py-3 bg-light border-top">
-        Copyright © 2024 ClassVibes
-      </div>
     </div>
   );
 }
