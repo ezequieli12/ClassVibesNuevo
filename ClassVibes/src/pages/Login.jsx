@@ -1,66 +1,141 @@
-import { useState } from 'react';
-import { supabase } from '../services/supabase';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
 
-export default function Login() {
-  const [form, setForm] = useState({ username: '', contraseña: '' });
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
+const supabase = createClient('YOUR_SUPABASE_URL', 'YOUR_SUPABASE_ANON_KEY');
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+const AuthForm = () => {
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [perfilId, setPerfilId] = useState(2); // Por defecto, asignar Alumno
 
-  const handleSubmit = async (e) => {
+  // Función de registro de usuario
+  const handleRegister = async (e) => {
     e.preventDefault();
     const { data, error } = await supabase
-      .from('usuario')
-      .select('*')
-      .eq('username', form.username)
-      .eq('contraseña', form.contraseña)
+      .from('usuarios')
+      .insert([{ email, password }])
       .single();
 
-    if (data) {
-      localStorage.setItem('usuario', JSON.stringify(data));
-      navigate('/admin');
+    if (error) {
+      console.error('Error al registrar:', error);
+      return;
+    }
+
+    const { error: perfilError } = await supabase
+      .from('usuario_perfil')
+      .insert([{ usuario_id: data.id, perfil_id: perfilId }]);
+
+    if (perfilError) {
+      console.error('Error al asignar perfil:', perfilError);
     } else {
-      setError('Usuario o contraseña incorrectos');
+      console.log('Usuario registrado y perfil asignado');
+    }
+  };
+
+  // Función de inicio de sesión
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('id')
+      .eq('email', email)
+      .eq('password', password)
+      .single();
+
+    if (error) {
+      console.error('Error al iniciar sesión:', error);
+      return;
+    }
+
+    // Obtener el perfil del usuario
+    const { data: perfil, error: perfilError } = await supabase
+      .from('usuario_perfil')
+      .select('perfil_id')
+      .eq('usuario_id', data.id)
+      .single();
+
+    if (perfilError) {
+      console.error('Error al obtener el perfil:', perfilError);
+      return;
+    }
+
+    // Determinar el tipo de perfil
+    switch (perfil.perfil_id) {
+      case 1:
+        console.log('Bienvenido, Profesor');
+        break;
+      case 2:
+        console.log('Bienvenido, Alumno');
+        break;
+      case 3:
+        console.log('Bienvenido, Admin');
+        break;
+      default:
+        console.log('Perfil no reconocido');
     }
   };
 
   return (
-    <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh', background: '#f4f4f4' }}>
-      <div className="text-center w-100" style={{ maxWidth: '400px' }}>
-        <h2 className="mb-4" style={{ fontWeight: 'bold' }}>Iniciar Sesión</h2>
+    <div>
+      <h1>{isRegistering ? 'Registro' : 'Inicio de sesión'}</h1>
 
-        {error && <div className="alert alert-danger">{error}</div>}
+      <form onSubmit={isRegistering ? handleRegister : handleLogin}>
+        <input
+          type="email"
+          placeholder="Correo electrónico"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="Contraseña"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
-        <form onSubmit={handleSubmit} className="border rounded shadow-sm p-4" style={{ borderColor: '#007CF0', borderWidth: '1px' }}>
-          <div className="mb-3 text-start">
-            <label className="form-label fw-bold">Nombre de usuario</label>
-            <input
-              type="text"
-              name="username"
-              className="form-control bg-light"
-              value={form.username}
-              onChange={handleChange}
-              required
-            />
+        {/* Si es registro, mostrar selección de perfil */}
+        {isRegistering && (
+          <div>
+            <label>
+              <input
+                type="radio"
+                value={2}
+                checked={perfilId === 2}
+                onChange={() => setPerfilId(2)}
+              />
+              Alumno
+            </label>
+            <label>
+              <input
+                type="radio"
+                value={1}
+                checked={perfilId === 1}
+                onChange={() => setPerfilId(1)}
+              />
+              Profesor
+            </label>
+            <label>
+              <input
+                type="radio"
+                value={3}
+                checked={perfilId === 3}
+                onChange={() => setPerfilId(3)}
+              />
+              Admin
+            </label>
           </div>
-          <div className="mb-4 text-start">
-            <label className="form-label fw-bold">Contraseña</label>
-            <input
-              type="password"
-              name="contraseña"
-              className="form-control bg-light"
-              value={form.contraseña}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <button type="submit" className="btn btn-primary w-100 fw-bold">Iniciar Sesión</button>
-        </form>
-      </div>
+        )}
+
+        <button type="submit">{isRegistering ? 'Registrar' : 'Iniciar sesión'}</button>
+      </form>
+
+      {/* Botón para alternar entre registro e inicio de sesión */}
+      <button onClick={() => setIsRegistering(!isRegistering)}>
+        {isRegistering ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate'}
+      </button>
     </div>
   );
-}
+};
+
+export default AuthForm;
